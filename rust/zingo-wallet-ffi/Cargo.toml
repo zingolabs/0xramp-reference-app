@@ -1,0 +1,20 @@
+[package]
+name = "zingo-wallet-ffi"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+name = "zingo_wallet_ffi"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[dependencies]
+http.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "sync", "time", "macros", "fs"] }
+uniffi.workspace = true
+zingolib.workspace = true
+zip32.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

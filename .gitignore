@@ -1,0 +1,64 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# editors
+.idea/
+
+# logs
+*.log
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+example
+
+# generated native folders
+/ios
+/android
+
+# Rust
+rust/target
+
+# local module build output
+modules/*/android/build/
+modules/*/android/.gradle/
+modules/*/ios/build/
+.gradle/
+
+# generated zingo-wallet native artifacts
+modules/zingo-wallet/ios/ZingoWalletFFI.xcframework
+modules/zingo-wallet/ios/Generated
+modules/zingo-wallet/android/src/main/jniLibs
+modules/zingo-wallet/android/src/main/java/uniffi

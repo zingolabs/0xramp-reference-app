@@ -1,0 +1,27 @@
+[workspace]
+members = ["zingo-wallet-ffi", "uniffi-bindgen"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+publish = false
+
+[workspace.dependencies]
+http = "1"
+tempfile = "3"
+thiserror = "2"
+tokio = "1"
+tokio-util = "0.7.11"
+uniffi = "=0.32.1"
+zingolib = { git = "https://github.com/zingolabs/zingolib", branch = "feat/ffi-sync-subscribe" }
+zip32 = "0.2.0"
+
+[profile.release]
+opt-level = "z"
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"
+overflow-checks = true
+
+[patch.crates-io]
+lightwallet-protocol = { git = "https://github.com/zingolabs/lightwallet-protocol-rust", rev = "9bdfdc77eb283f2a3d26c27100cc2ac90148cd93" }
