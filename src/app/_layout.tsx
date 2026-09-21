@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useColorScheme } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { useColors } from "@/constants/colors";
 import { HAS_FLOATING_SHEETS } from "@/constants/sheet";
@@ -11,14 +12,24 @@ import { useWallet, WalletProvider } from "@/wallet/wallet-context";
 
 SplashScreen.preventAutoHideAsync();
 
-const ANDROID_SHEET_CORNER_RADIUS = 28;
+const SHEET_IS_NATIVE = process.env.EXPO_OS !== "android";
+
+const SHEET_OPTIONS = SHEET_IS_NATIVE
+  ? ({
+      presentation: "formSheet",
+      sheetAllowedDetents: "fitToContents",
+      sheetGrabberVisible: true,
+    } as const)
+  : ({ presentation: "transparentModal", animation: "fade" } as const);
 const HAS_SCROLL_EDGE_EFFECTS = process.env.EXPO_OS === "ios" && isGlassEffectAPIAvailable();
 
 export default function RootLayout() {
   return (
-    <WalletProvider>
-      <RootStack />
-    </WalletProvider>
+    <GestureHandlerRootView>
+      <WalletProvider>
+        <RootStack />
+      </WalletProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -77,8 +88,10 @@ function RootStack() {
               headerShown: true,
               title: "Settings",
               headerShadowVisible: false,
-              headerTransparent: true,
+              headerTransparent: process.env.EXPO_OS === "ios",
               headerBlurEffect: HAS_SCROLL_EDGE_EFFECTS ? undefined : "systemChromeMaterial",
+              headerStyle:
+                process.env.EXPO_OS === "ios" ? undefined : { backgroundColor: colors.recessed },
               scrollEdgeEffects: { top: "soft" },
               headerTintColor: colors.text,
               headerBackButtonDisplayMode: "minimal",
@@ -88,23 +101,27 @@ function RootStack() {
           <Stack.Screen
             name="switch-wallet"
             options={{
-              presentation: "formSheet",
-              sheetAllowedDetents: "fitToContents",
-              sheetGrabberVisible: true,
-              sheetCornerRadius:
-                process.env.EXPO_OS === "android" ? ANDROID_SHEET_CORNER_RADIUS : undefined,
-              contentStyle: { backgroundColor: HAS_FLOATING_SHEETS ? "transparent" : colors.raised },
+              ...SHEET_OPTIONS,
+              contentStyle: {
+                backgroundColor: SHEET_IS_NATIVE
+                  ? HAS_FLOATING_SHEETS
+                    ? "transparent"
+                    : colors.raised
+                  : "transparent",
+              },
             }}
           />
           <Stack.Screen
             name="sync-error"
             options={{
-              presentation: "formSheet",
-              sheetAllowedDetents: "fitToContents",
-              sheetGrabberVisible: true,
-              sheetCornerRadius:
-                process.env.EXPO_OS === "android" ? ANDROID_SHEET_CORNER_RADIUS : undefined,
-              contentStyle: { backgroundColor: HAS_FLOATING_SHEETS ? "transparent" : colors.raised },
+              ...SHEET_OPTIONS,
+              contentStyle: {
+                backgroundColor: SHEET_IS_NATIVE
+                  ? HAS_FLOATING_SHEETS
+                    ? "transparent"
+                    : colors.raised
+                  : "transparent",
+              },
             }}
           />
         </Stack.Protected>

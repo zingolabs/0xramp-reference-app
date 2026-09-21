@@ -5,12 +5,14 @@ import { Platform, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GlassButton } from "@/components/glass-button";
+import { Sheet } from "@/components/sheet";
 import { useColors } from "@/constants/colors";
 import { HAS_FLOATING_SHEETS } from "@/constants/sheet";
 import { useWallet } from "@/wallet/wallet-context";
 
 const MONO_FONT = Platform.select({ ios: "Menlo", default: "monospace" });
-const FLOATING_SHEET_BOTTOM_PADDING = 24;
+const SHEET_BOTTOM_PADDING = (bottomInset: number) =>
+  process.env.EXPO_OS === "android" ? 8 : HAS_FLOATING_SHEETS ? 24 : bottomInset + 16;
 
 export default function SyncError() {
   const colors = useColors();
@@ -28,42 +30,44 @@ export default function SyncError() {
   }
 
   return (
-    <View
-      style={[
-        styles.sheet,
-        { paddingBottom: HAS_FLOATING_SHEETS ? FLOATING_SHEET_BOTTOM_PADDING : insets.bottom + 16 },
-      ]}
-    >
-      <View style={styles.heading}>
-        <SymbolView
-          name={{ ios: "exclamationmark.triangle.fill", android: "warning", web: "warning" }}
-          size={22}
-          weight="semibold"
-          tintColor={colors.warning}
-        />
-        <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
-          Sync failed
-        </Text>
-      </View>
+    <Sheet>
+      <View
+        style={[
+          styles.sheet,
+          { paddingBottom: SHEET_BOTTOM_PADDING(insets.bottom) },
+        ]}
+      >
+        <View style={styles.heading}>
+          <SymbolView
+            name={{ ios: "exclamationmark.triangle.fill", android: "warning", web: "warning" }}
+            size={22}
+            weight="semibold"
+            tintColor={colors.warning}
+          />
+          <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
+            Sync failed
+          </Text>
+        </View>
 
-      <Text selectable style={[styles.reason, { color: colors.text }]}>
-        {failure.reason ?? "The wallet could not sync with the indexer."}
-      </Text>
-      {failure.code && (
-        <Text selectable style={[styles.code, { color: colors.textMuted }]}>
-          {failure.code}
+        <Text selectable style={[styles.reason, { color: colors.text }]}>
+          {failure.reason ?? "The wallet could not sync with the indexer."}
         </Text>
-      )}
+        {failure.code && (
+          <Text selectable style={[styles.code, { color: colors.textMuted }]}>
+            {failure.code}
+          </Text>
+        )}
 
-      <View style={styles.action}>
-        <GlassButton
-          label="Retry"
-          onPress={retry}
-          tintColor={colors.accent}
-          labelColor={colors.onAccent}
-        />
-      </View>
-    </View>
+        <View style={styles.action}>
+          <GlassButton
+            label="Retry"
+            onPress={retry}
+            tintColor={colors.accent}
+            labelColor={colors.onAccent}
+          />
+        </View>
+        </View>
+    </Sheet>
   );
 }
 

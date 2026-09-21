@@ -6,12 +6,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GlassButton } from "@/components/glass-button";
 import { PressableFeedback } from "@/components/pressable-feedback";
+import { Sheet } from "@/components/sheet";
 import { useColors } from "@/constants/colors";
 import { HAS_FLOATING_SHEETS } from "@/constants/sheet";
 import { toWalletError } from "@/wallet/wallet-backend";
 import { useWallet } from "@/wallet/wallet-context";
 
-const FLOATING_SHEET_BOTTOM_PADDING = 24;
+const SHEET_BOTTOM_PADDING = (bottomInset: number) =>
+  process.env.EXPO_OS === "android" ? 8 : HAS_FLOATING_SHEETS ? 24 : bottomInset + 16;
 
 export default function SwitchWallet() {
   const colors = useColors();
@@ -33,52 +35,54 @@ export default function SwitchWallet() {
   }
 
   return (
-    <View
-      style={[
-        styles.sheet,
-        { paddingBottom: HAS_FLOATING_SHEETS ? FLOATING_SHEET_BOTTOM_PADDING : insets.bottom + 16 },
-      ]}
-    >
-      <View style={styles.heading}>
-        <SymbolView
-          name={{ ios: "exclamationmark.triangle.fill", android: "warning", web: "warning" }}
-          size={22}
-          weight="semibold"
-          tintColor={colors.danger}
-        />
-        <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
-          Switch wallet?
+    <Sheet>
+      <View
+        style={[
+          styles.sheet,
+          { paddingBottom: SHEET_BOTTOM_PADDING(insets.bottom) },
+        ]}
+      >
+        <View style={styles.heading}>
+          <SymbolView
+            name={{ ios: "exclamationmark.triangle.fill", android: "warning", web: "warning" }}
+            size={22}
+            weight="semibold"
+            tintColor={colors.danger}
+          />
+          <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
+            Switch wallet?
+          </Text>
+        </View>
+
+        <Text style={[styles.body, { color: colors.text }]}>
+          This wallet is removed from this device. Without its seed phrase you cannot open it again.
         </Text>
-      </View>
 
-      <Text style={[styles.body, { color: colors.text }]}>
-        This wallet is removed from this device. Without its seed phrase you cannot open it again.
-      </Text>
+        {failure && (
+          <Text selectable style={[styles.failure, { color: colors.warning }]}>
+            {failure}
+          </Text>
+        )}
 
-      {failure && (
-        <Text selectable style={[styles.failure, { color: colors.warning }]}>
-          {failure}
-        </Text>
-      )}
-
-      <View style={styles.actions}>
-        <GlassButton
-          label="Switch wallet"
-          onPress={confirm}
-          busy={switching}
-          tintColor={colors.danger}
-          labelColor={colors.onAccent}
-        />
-        <PressableFeedback
-          onPress={() => router.back()}
-          disabled={switching}
-          accessibilityLabel="Cancel"
-          style={styles.cancel}
-        >
-          <Text style={[styles.cancelLabel, { color: colors.text }]}>Cancel</Text>
-        </PressableFeedback>
-      </View>
-    </View>
+        <View style={styles.actions}>
+          <GlassButton
+            label="Switch wallet"
+            onPress={confirm}
+            busy={switching}
+            tintColor={colors.danger}
+            labelColor={colors.onAccent}
+          />
+          <PressableFeedback
+            onPress={() => router.back()}
+            disabled={switching}
+            accessibilityLabel="Cancel"
+            style={styles.cancel}
+          >
+            <Text style={[styles.cancelLabel, { color: colors.text }]}>Cancel</Text>
+          </PressableFeedback>
+        </View>
+        </View>
+    </Sheet>
   );
 }
 
