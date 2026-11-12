@@ -14,5 +14,5 @@ The Add button opens `https://0xramp.app` with `WebBrowser.openAuthSessionAsync`
 
 - The user sees browser chrome, not our UI. The sheet is tinted with the app colors.
 - The session is not ephemeral. A returning user stays signed in to 0xramp and passkey autofill works. iOS asks for consent to share website data each time the sheet opens.
-- 0xramp reads only the `resume`, `id`, `baseSwap`, `reclaimSessionId` and `kyc_code` query parameters. The wallet cannot prefill the destination address, the asset or the amount. The user pastes the address. ZEC delivery is to a transparent receiver. The user shields afterwards.
-- A return URL on the app scheme is already passed to the session. The sheet will close by itself once 0xramp redirects back.
+- The session page comes from the 0xramp partner API, and the deposit is a send request that 0xramp hands to the app on the return scheme. ADR 0004 describes that flow.
+- A return URL on the app scheme is passed to the session. The sheet closes by itself each time 0xramp navigates to that scheme, so the app reopens the page in a new sheet after a send.

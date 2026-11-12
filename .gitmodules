@@ -1,0 +1,3 @@
+[submodule "vendor/0xramp-sdk"]
+	path = vendor/0xramp-sdk
+	url = https://github.com/0xramp-labs/0xramp-sdk.git

@@ -1,5 +1,11 @@
 import { toWalletError, WalletError } from "./WalletError";
-import type { Balance, HistoryEntry, SyncState, SyncStateSubscription } from "./ZingoWallet.types";
+import type {
+  Balance,
+  HistoryEntry,
+  SendProposal,
+  SyncState,
+  SyncStateSubscription,
+} from "./ZingoWallet.types";
 import { zingoWalletModule, type ZingoWalletModule } from "./ZingoWalletModule";
 
 type MethodName =
@@ -12,7 +18,12 @@ type MethodName =
   | "history"
   | "startSync"
   | "pauseSync"
-  | "resumeSync";
+  | "resumeSync"
+  | "transparentAddress"
+  | "unifiedAddress"
+  | "proposeSend"
+  | "discardProposal"
+  | "sendProposed";
 
 async function call<T>(
   name: MethodName,
@@ -70,6 +81,26 @@ export function pauseSync(): Promise<void> {
 
 export function resumeSync(): Promise<void> {
   return call("resumeSync", (module) => module.resumeSync());
+}
+
+export function transparentAddress(): Promise<string> {
+  return call("transparentAddress", (module) => module.transparentAddress());
+}
+
+export function unifiedAddress(): Promise<string> {
+  return call("unifiedAddress", (module) => module.unifiedAddress());
+}
+
+export function proposeSend(address: string, amountZats: number): Promise<SendProposal> {
+  return call("proposeSend", (module) => module.proposeSend(address, amountZats));
+}
+
+export function discardProposal(): Promise<void> {
+  return call("discardProposal", (module) => module.discardProposal());
+}
+
+export function sendProposed(): Promise<string[]> {
+  return call("sendProposed", (module) => module.sendProposed());
 }
 
 export function addSyncStateListener(listener: (state: SyncState) => void): SyncStateSubscription {

@@ -10,6 +10,7 @@ import java.lang.ref.WeakReference
 import uniffi.zingo_wallet_ffi.Balance
 import uniffi.zingo_wallet_ffi.HistoryEntry
 import uniffi.zingo_wallet_ffi.HistoryKind
+import uniffi.zingo_wallet_ffi.SendProposal
 import uniffi.zingo_wallet_ffi.SyncListener
 import uniffi.zingo_wallet_ffi.SyncPhase
 import uniffi.zingo_wallet_ffi.SyncState
@@ -37,6 +38,11 @@ class ZingoWalletModule : Module() {
     AsyncFunction("startSync") Coroutine { -> coded { wallet.startSync(SyncStateForwarder(this@ZingoWalletModule)) } }
     AsyncFunction("pauseSync") Coroutine { -> coded { wallet.pauseSync() } }
     AsyncFunction("resumeSync") Coroutine { -> coded { wallet.resumeSync() } }
+    AsyncFunction("transparentAddress") Coroutine { -> coded { wallet.transparentAddress() } }
+    AsyncFunction("unifiedAddress") Coroutine { -> coded { wallet.unifiedAddress() } }
+    AsyncFunction("proposeSend") Coroutine { address: String, amountZats: Long -> coded { wallet.proposeSend(address, amountZats).toMap() } }
+    AsyncFunction("discardProposal") Coroutine { -> coded { wallet.discardProposal() } }
+    AsyncFunction("sendProposed") Coroutine { -> coded { wallet.sendProposed() } }
   }
 }
 
@@ -63,6 +69,8 @@ private inline fun <T> coded(block: () -> T): T =
   }
 
 private fun Balance.toMap() = mapOf("spendableZats" to spendableZats, "unshieldedZats" to unshieldedZats)
+
+private fun SendProposal.toMap() = mapOf("amountZats" to amountZats, "feeZats" to feeZats, "totalZats" to totalZats)
 
 private fun HistoryEntry.toMap() =
   mapOf("txid" to txid, "kind" to kind.jsName(), "zats" to zats, "timestampMs" to timestampMs, "pending" to pending)

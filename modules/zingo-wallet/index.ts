@@ -3,13 +3,18 @@ export {
   balance,
   create,
   deleteWallet,
+  discardProposal,
   exists,
   history,
   load,
   pauseSync,
+  proposeSend,
   restore,
   resumeSync,
+  sendProposed,
   startSync,
+  transparentAddress,
+  unifiedAddress,
 } from "./src/ZingoWallet";
 export {
   isWalletErrorCode,

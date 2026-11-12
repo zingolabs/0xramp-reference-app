@@ -3,6 +3,12 @@ export type Balance = {
   unshieldedZats: number;
 };
 
+export type SendProposal = {
+  amountZats: number;
+  feeZats: number;
+  totalZats: number;
+};
+
 export type HistoryKind = "received" | "sent" | "shielded";
 
 export type HistoryEntry = {

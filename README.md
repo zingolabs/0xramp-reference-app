@@ -9,10 +9,12 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Get started
 
-1. Install dependencies
+1. Build the 0xramp SDK, which is a git submodule and not on npm yet, then install dependencies
 
    ```bash
-   npm install
+   git submodule update --init
+   pnpm sdk:build
+   pnpm install
    ```
 
 2. Start the app

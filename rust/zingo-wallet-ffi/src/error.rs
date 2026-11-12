@@ -20,6 +20,14 @@ pub enum WalletError {
     Storage { reason: String },
     #[error("sync error: {reason}")]
     Sync { reason: String },
+    #[error("invalid address: {reason}")]
+    InvalidAddress { reason: String },
+    #[error("invalid amount: {reason}")]
+    InvalidAmount { reason: String },
+    #[error("insufficient funds: {reason}")]
+    InsufficientFunds { reason: String },
+    #[error("send error: {reason}")]
+    Send { reason: String },
     #[error("internal error: {reason}")]
     Internal { reason: String },
 }
@@ -37,6 +45,10 @@ impl WalletError {
             Self::Network { .. } => "ERR_NETWORK",
             Self::Storage { .. } => "ERR_STORAGE",
             Self::Sync { .. } => "ERR_SYNC",
+            Self::InvalidAddress { .. } => "ERR_INVALID_ADDRESS",
+            Self::InvalidAmount { .. } => "ERR_INVALID_AMOUNT",
+            Self::InsufficientFunds { .. } => "ERR_INSUFFICIENT_FUNDS",
+            Self::Send { .. } => "ERR_SEND",
             Self::Internal { .. } => "ERR_INTERNAL",
         }
         .to_owned()
@@ -62,6 +74,12 @@ impl WalletError {
 
     pub(crate) fn sync(cause: &(dyn Error + 'static)) -> Self {
         Self::Sync {
+            reason: describe(cause),
+        }
+    }
+
+    pub(crate) fn send(cause: &(dyn Error + 'static)) -> Self {
+        Self::Send {
             reason: describe(cause),
         }
     }
@@ -99,7 +117,7 @@ mod tests {
     #[error("file error. {0}")]
     struct Echoing(#[source] std::io::Error);
 
-    fn reasoned(reason: &str) -> [WalletError; 6] {
+    fn reasoned(reason: &str) -> [WalletError; 10] {
         let reason = reason.to_owned();
         [
             WalletError::InvalidSeed {
@@ -115,6 +133,18 @@ mod tests {
                 reason: reason.clone(),
             },
             WalletError::Sync {
+                reason: reason.clone(),
+            },
+            WalletError::InvalidAddress {
+                reason: reason.clone(),
+            },
+            WalletError::InvalidAmount {
+                reason: reason.clone(),
+            },
+            WalletError::InsufficientFunds {
+                reason: reason.clone(),
+            },
+            WalletError::Send {
                 reason: reason.clone(),
             },
             WalletError::Internal { reason },
@@ -135,6 +165,10 @@ mod tests {
             "ERR_NETWORK",
             "ERR_STORAGE",
             "ERR_SYNC",
+            "ERR_INVALID_ADDRESS",
+            "ERR_INVALID_AMOUNT",
+            "ERR_INSUFFICIENT_FUNDS",
+            "ERR_SEND",
             "ERR_INTERNAL",
         ];
         for (error, code) in unit {
@@ -172,6 +206,7 @@ mod tests {
         assert_eq!(WalletError::network(&cause).code(), "ERR_NETWORK");
         assert_eq!(WalletError::storage(&cause).code(), "ERR_STORAGE");
         assert_eq!(WalletError::sync(&cause).code(), "ERR_SYNC");
+        assert_eq!(WalletError::send(&cause).code(), "ERR_SEND");
         assert_eq!(WalletError::internal(&cause).code(), "ERR_INTERNAL");
     }
 }

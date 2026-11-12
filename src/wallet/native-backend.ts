@@ -14,4 +14,9 @@ export const nativeBackend: WalletBackend = {
   pauseSync: ZingoWallet.pauseSync,
   resumeSync: ZingoWallet.resumeSync,
   onSyncState: ZingoWallet.addSyncStateListener,
+  transparentAddress: ZingoWallet.transparentAddress,
+  unifiedAddress: ZingoWallet.unifiedAddress,
+  proposeSend: ZingoWallet.proposeSend,
+  discardProposal: ZingoWallet.discardProposal,
+  sendProposed: ZingoWallet.sendProposed,
 };

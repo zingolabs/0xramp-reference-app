@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { useColors } from "@/constants/colors";
 import { HAS_FLOATING_SHEETS } from "@/constants/sheet";
+import { RampProvider } from "@/ramp/ramp-context";
 import { useWallet, WalletProvider } from "@/wallet/wallet-context";
 
 SplashScreen.preventAutoHideAsync();
@@ -22,12 +23,15 @@ const SHEET_OPTIONS = SHEET_IS_NATIVE
     } as const)
   : ({ presentation: "transparentModal", animation: "fade" } as const);
 const HAS_SCROLL_EDGE_EFFECTS = process.env.EXPO_OS === "ios" && isGlassEffectAPIAvailable();
+const SHEET_ROUTES = ["switch-wallet", "sync-error", "ramp", "ramp-send", "receive"] as const;
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView>
       <WalletProvider>
-        <RootStack />
+        <RampProvider>
+          <RootStack />
+        </RampProvider>
       </WalletProvider>
     </GestureHandlerRootView>
   );
@@ -98,32 +102,22 @@ function RootStack() {
               contentStyle: { backgroundColor: colors.recessed },
             }}
           />
-          <Stack.Screen
-            name="switch-wallet"
-            options={{
-              ...SHEET_OPTIONS,
-              contentStyle: {
-                backgroundColor: SHEET_IS_NATIVE
-                  ? HAS_FLOATING_SHEETS
-                    ? "transparent"
-                    : colors.raised
-                  : "transparent",
-              },
-            }}
-          />
-          <Stack.Screen
-            name="sync-error"
-            options={{
-              ...SHEET_OPTIONS,
-              contentStyle: {
-                backgroundColor: SHEET_IS_NATIVE
-                  ? HAS_FLOATING_SHEETS
-                    ? "transparent"
-                    : colors.raised
-                  : "transparent",
-              },
-            }}
-          />
+          {SHEET_ROUTES.map((name) => (
+            <Stack.Screen
+              key={name}
+              name={name}
+              options={{
+                ...SHEET_OPTIONS,
+                contentStyle: {
+                  backgroundColor: SHEET_IS_NATIVE
+                    ? HAS_FLOATING_SHEETS
+                      ? "transparent"
+                      : colors.raised
+                    : "transparent",
+                },
+              }}
+            />
+          ))}
         </Stack.Protected>
       </Stack>
     </ThemeProvider>
