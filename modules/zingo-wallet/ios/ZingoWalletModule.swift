@@ -30,6 +30,12 @@ public final class ZingoWalletModule: Module {
     AsyncFunction("startSync") { try await withWallet { try await $0.startSync(listener: syncStateForwarder) } }
     AsyncFunction("pauseSync") { try await withWallet { try await $0.pauseSync() } }
     AsyncFunction("resumeSync") { try await withWallet { try await $0.resumeSync() } }
+    AsyncFunction("transparentAddress") { try await withWallet { try await $0.transparentAddress() } }
+    AsyncFunction("proposeSend") { (address: String, amountZats: Int64) in
+      try await withWallet { try await $0.proposeSend(address: address, amountZats: amountZats) }.dictionary
+    }
+    AsyncFunction("discardProposal") { try await withWallet { try await $0.discardProposal() } }
+    AsyncFunction("sendProposed") { try await withWallet { try await $0.sendProposed() } }
   }
 }
 
@@ -70,6 +76,12 @@ private func withWallet<T>(_ body: (Wallet) async throws -> T) async throws -> T
 private extension Balance {
   var dictionary: [String: Any] {
     ["spendableZats": spendableZats, "unshieldedZats": unshieldedZats]
+  }
+}
+
+private extension SendProposal {
+  var dictionary: [String: Any] {
+    ["amountZats": amountZats, "feeZats": feeZats, "totalZats": totalZats]
   }
 }
 

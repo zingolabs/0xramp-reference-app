@@ -1,9 +1,16 @@
-import type { Balance, HistoryEntry, SyncState, SyncStateSubscription } from "../../modules/zingo-wallet";
+import type {
+  Balance,
+  HistoryEntry,
+  SendProposal,
+  SyncState,
+  SyncStateSubscription,
+} from "../../modules/zingo-wallet";
 
 export type {
   Balance,
   HistoryEntry,
   HistoryKind,
+  SendProposal,
   SyncPhase,
   SyncState,
   SyncStateSubscription,
@@ -22,4 +29,8 @@ export type WalletBackend = {
   pauseSync(): Promise<void>;
   resumeSync(): Promise<void>;
   onSyncState(listener: (state: SyncState) => void): SyncStateSubscription;
+  transparentAddress(): Promise<string>;
+  proposeSend(address: string, amountZats: number): Promise<SendProposal>;
+  discardProposal(): Promise<void>;
+  sendProposed(): Promise<string[]>;
 };

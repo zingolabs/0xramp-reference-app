@@ -4,7 +4,6 @@ import { useHeaderHeight } from "expo-router/react-navigation";
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   StyleSheet,
   Text,
@@ -20,7 +19,6 @@ import { HISTORY_ROW_INSET, HistoryRow, historyEntryKey } from "@/components/his
 import { PressableFeedback } from "@/components/pressable-feedback";
 import { useColors, type Colors } from "@/constants/colors";
 import { useMaterialSymbolSource } from "@/hooks/use-material-symbol-source";
-import { openRamp } from "@/ramp/open-ramp";
 import { formatZec } from "@/wallet/history";
 import type { Balance, SyncState } from "@/wallet/wallet-backend";
 import { useWallet } from "@/wallet/wallet-context";
@@ -51,14 +49,6 @@ export default function Home() {
   const { balance, history, syncState } = useWallet();
   const androidSettingsIcon = useMaterialSymbolSource("settings");
 
-  async function startRamp() {
-    try {
-      await openRamp(colors);
-    } catch {
-      Alert.alert("Could not open 0xramp", "Check your connection and try again.");
-    }
-  }
-
   return (
     <>
       {(process.env.EXPO_OS === "ios" || androidSettingsIcon) && (
@@ -80,7 +70,7 @@ export default function Home() {
           syncState={syncState}
           topInset={headerHeight}
           onShowSyncError={() => router.push("/sync-error")}
-          onOpenRamp={startRamp}
+          onSell={() => router.push("/ramp")}
         />
 
         <FlatList
@@ -117,7 +107,7 @@ function Summary({
   syncState,
   topInset,
   onShowSyncError,
-  onOpenRamp,
+  onSell,
 }: {
   scheme: ColorSchemeName;
   colors: Colors;
@@ -125,7 +115,7 @@ function Summary({
   syncState: SyncState;
   topInset: number;
   onShowSyncError: () => void;
-  onOpenRamp: () => void;
+  onSell: () => void;
 }) {
   const formatted = formatZec(balance.spendableZats);
   const settled = syncState.firstSyncComplete;
@@ -192,11 +182,11 @@ function Summary({
 
       <View style={styles.actions}>
         <GlassIconButton
-          label="Add"
-          icon={{ ios: "plus", android: "add", web: "add" }}
+          label="Sell"
+          icon={{ ios: "banknote", android: "payments", web: "payments" }}
           colors={colors}
           prominent
-          onPress={onOpenRamp}
+          onPress={onSell}
         />
         <GlassIconButton
           label="Receive"

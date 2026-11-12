@@ -1,17 +1,15 @@
-import { createURL } from "expo-linking";
 import { openAuthSessionAsync } from "expo-web-browser";
 
 import type { Colors } from "@/constants/colors";
+import { RAMP_RETURN_URL } from "@/ramp/config";
 
-const RAMP_URL = "https://0xramp.app";
-const RAMP_RETURN_PATH = "ramp";
-
-export async function openRamp(colors: Colors): Promise<void> {
-  await openAuthSessionAsync(RAMP_URL, createURL(RAMP_RETURN_PATH), {
+export async function openPane(url: string, colors: Colors): Promise<string | null> {
+  const result = await openAuthSessionAsync(url, RAMP_RETURN_URL, {
     preferEphemeralSession: false,
     dismissButtonStyle: "done",
     controlsColor: colors.accentText,
     toolbarColor: colors.raised,
     secondaryToolbarColor: colors.canvas,
   });
+  return result.type === "success" ? result.url : null;
 }

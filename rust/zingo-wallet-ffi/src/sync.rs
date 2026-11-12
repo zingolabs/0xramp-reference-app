@@ -136,8 +136,7 @@ async fn sync_to_tip(
     collect(client).await
 }
 
-async fn launch(client: &RwLock<LightClient>, indexer: &http::Uri) -> Result<(), WalletError> {
-    let mut client = client.write().await;
+pub(crate) async fn connect(client: &mut LightClient, indexer: &http::Uri) -> Result<(), WalletError> {
     if client.indexer_uri().is_none() {
         tokio::time::timeout(
             PER_ATTEMPT_CONNECT_TIMEOUT,
@@ -146,6 +145,17 @@ async fn launch(client: &RwLock<LightClient>, indexer: &http::Uri) -> Result<(),
         .await
         .map_err(|elapsed| WalletError::network(&elapsed))?
         .map_err(|refused| WalletError::network(&refused))?;
+    }
+    Ok(())
+}
+
+async fn launch(client: &RwLock<LightClient>, indexer: &http::Uri) -> Result<(), WalletError> {
+    let mut client = client.write().await;
+    connect(&mut client, indexer).await?;
+    let mut settings = client.wallet().read().await.wallet_settings.clone();
+    if !settings.sync_config.shutdown_on_completion {
+        settings.sync_config.shutdown_on_completion = true;
+        client.update_wallet_settings(settings).await;
     }
     client
         .sync()
@@ -158,12 +168,15 @@ async fn follow(
     demand: &mut watch::Receiver<Demand>,
     state: &watch::Sender<SyncState>,
 ) {
-    let client = client.read().await;
-    let mut finished = std::pin::pin!(client.wait_for_sync());
+    let mut status = client.read().await.subscribe_sync_status();
     loop {
-        steer(&client, *demand.borrow_and_update(), state);
+        steer(&*client.read().await, *demand.borrow_and_update(), state);
         tokio::select! {
-            () = &mut finished => break,
+            finished = status.changed() => {
+                if finished.is_err() {
+                    break;
+                }
+            }
             Ok(()) = demand.changed() => {}
         }
     }

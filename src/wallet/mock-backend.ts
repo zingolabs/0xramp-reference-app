@@ -8,6 +8,9 @@ const SYNC_DURATION_MS = 2_500;
 const SYNC_INTERVAL_MS = 75_000;
 const SEED_WORD_COUNT = 24;
 const EMPTY_BALANCE = { spendableZats: 0, unshieldedZats: 0 };
+const MOCK_FEE_ZATS = 10_000;
+const MOCK_TRANSPARENT_ADDRESS = "t1YbmA92ebTS2M223tZsSFZdn7nogkEwJNx";
+const TXID_HEX_LENGTH = 64;
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -22,6 +25,7 @@ export function createMockBackend(scenario: MockScenario): WalletBackend {
   let syncStarted = false;
   let failuresLeft = scenario === "sync-failure" ? 1 : 0;
   let syncTimer: ReturnType<typeof setTimeout> | undefined;
+  let proposedZats: number | null = null;
   let state: SyncState = { phase: "idle", firstSyncComplete: false, errorCode: null, errorReason: null };
   const listeners = new Set<(state: SyncState) => void>();
 
@@ -126,6 +130,42 @@ export function createMockBackend(scenario: MockScenario): WalletBackend {
     onSyncState(listener) {
       listeners.add(listener);
       return { remove: () => listeners.delete(listener) };
+    },
+    async transparentAddress() {
+      requireLoaded();
+      return MOCK_TRANSPARENT_ADDRESS;
+    },
+    async proposeSend(address, amountZats) {
+      requireLoaded();
+      if (!/^t[13][1-9A-HJ-NP-Za-km-z]{25,89}$/.test(address)) {
+        throw new WalletError("ERR_INVALID_ADDRESS", `${address} is not a transparent address.`);
+      }
+      if (!Number.isInteger(amountZats) || amountZats <= 0) {
+        throw new WalletError("ERR_INVALID_AMOUNT", `${amountZats} is not a positive amount in zats.`);
+      }
+      const spendable = scanned ? MOCK_BALANCE.spendableZats : 0;
+      const totalZats = amountZats + MOCK_FEE_ZATS;
+      if (totalZats > spendable) {
+        throw new WalletError(
+          "ERR_INSUFFICIENT_FUNDS",
+          `${spendable} zats are spendable, ${totalZats} zats are needed with the fee (mock).`,
+        );
+      }
+      proposedZats = amountZats;
+      return { amountZats, feeZats: MOCK_FEE_ZATS, totalZats };
+    },
+    async discardProposal() {
+      requireLoaded();
+      proposedZats = null;
+    },
+    async sendProposed() {
+      requireLoaded();
+      if (proposedZats === null) {
+        throw new WalletError("ERR_SEND", "No proposal is stored (mock).");
+      }
+      await delay(NETWORK_DELAY_MS);
+      proposedZats = null;
+      return [Date.now().toString(16).padStart(TXID_HEX_LENGTH, "0")];
     },
   };
 }

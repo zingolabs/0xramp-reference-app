@@ -1,6 +1,6 @@
 import { NativeModule, requireNativeModule } from "expo";
 
-import type { Balance, HistoryEntry, ZingoWalletModuleEvents } from "./ZingoWallet.types";
+import type { Balance, HistoryEntry, SendProposal, ZingoWalletModuleEvents } from "./ZingoWallet.types";
 
 declare class ZingoWalletModule extends NativeModule<ZingoWalletModuleEvents> {
   exists(): Promise<boolean>;
@@ -13,6 +13,10 @@ declare class ZingoWalletModule extends NativeModule<ZingoWalletModuleEvents> {
   startSync(): Promise<void>;
   pauseSync(): Promise<void>;
   resumeSync(): Promise<void>;
+  transparentAddress(): Promise<string>;
+  proposeSend(address: string, amountZats: number): Promise<SendProposal>;
+  discardProposal(): Promise<void>;
+  sendProposed(): Promise<string[]>;
 }
 
 let nativeModule: ZingoWalletModule | undefined;

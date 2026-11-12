@@ -66,6 +66,7 @@ _Avoid_: swap (a swap exchanges one crypto asset for another)
 
 **Off-ramp**:
 A ramp from ZEC to fiat: the user sells ZEC and receives local currency.
+UI label: "Sell".
 _Avoid_: withdrawal, cash-out
 
 **On-ramp**:
@@ -85,6 +86,17 @@ The part of a ramp on the Zcash chain: the transactions between the wallet and
 **Fiat leg**:
 The part of a ramp on the payment rail, for example the Pix payout. Only
 0xramp knows its state.
+
+**Send request**:
+The one deposit 0xramp records for a sale: a transparent address and an exact
+amount in zats. It reaches the lightwallet as a link on the return scheme, and
+the lightwallet verifies it against 0xramp's record before the user sees it.
+_Avoid_: handoff (the SDK's name for the link), payment request
+
+**Send journal**:
+The lightwallet's durable record of each send request and its outcome. It makes
+a send exactly-once: a repeated request never reaches the wallet again.
+_Avoid_: send store (the SDK's name)
 
 ### History
 

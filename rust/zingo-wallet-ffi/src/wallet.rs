@@ -4,13 +4,18 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use tokio::sync::{RwLock, watch};
+use zcash_address::ZcashAddress;
+use zcash_client_backend::data_api::error::Error as ProposalError;
+use zcash_protocol::value::Zatoshis;
 use zingolib::config::{ChainType, ClientConfig, WalletConfig, construct_indexer_uri};
+use zingolib::data::receivers::{Receiver, transaction_request_from_receivers};
 use zingolib::lightclient::LightClient;
 use zingolib::lightclient::error::LightClientError;
 use zingolib::netutils::time::{DEFAULT_REQUEST_TIMEOUT, PER_ATTEMPT_CONNECT_TIMEOUT};
 use zingolib::netutils::{GrpcIndexer, Indexer as _};
+use zingolib::sync::transparent::TransparentScope;
 use zingolib::sync::{IronwoodNote, OrchardNote, SaplingNote};
-use zingolib::wallet::error::{BalanceError, KeyError, WalletError as LibraryError};
+use zingolib::wallet::error::{BalanceError, KeyError, ProposeSendError, WalletError as LibraryError};
 use zingolib::wallet::{LightWallet, WalletSettings};
 
 use crate::error::describe;
@@ -26,6 +31,13 @@ const ACCOUNT: zip32::AccountId = zip32::AccountId::ZERO;
 pub struct Balance {
     pub spendable_zats: i64,
     pub unshielded_zats: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct SendProposal {
+    pub amount_zats: i64,
+    pub fee_zats: i64,
+    pub total_zats: i64,
 }
 
 pub(crate) struct Session {
@@ -247,6 +259,125 @@ impl Wallet {
         self.demand.send_replace(Demand::Run);
         Ok(())
     }
+
+    pub async fn transparent_address(&self) -> Result<String, WalletError> {
+        let session = self.store.session().await?;
+        runtime::write(async move {
+            if let Some(address) = external_transparent_address(&*session.wallet.read().await) {
+                return Ok(address);
+            }
+            session
+                .client
+                .write()
+                .await
+                .generate_transparent_address(ACCOUNT, false)
+                .await
+                .map_err(|failure| WalletError::internal(&failure))?;
+            external_transparent_address(&*session.wallet.read().await).ok_or_else(|| {
+                WalletError::Internal {
+                    reason: "no external transparent address was derived".to_owned(),
+                }
+            })
+        })
+        .await
+    }
+
+    pub async fn propose_send(
+        &self,
+        address: String,
+        amount_zats: i64,
+    ) -> Result<SendProposal, WalletError> {
+        let recipient = ZcashAddress::try_from_encoded(&address).map_err(|invalid| {
+            WalletError::InvalidAddress {
+                reason: describe(&invalid),
+            }
+        })?;
+        let amount = u64::try_from(amount_zats)
+            .ok()
+            .and_then(|zats| Zatoshis::from_u64(zats).ok())
+            .filter(|zats| *zats != Zatoshis::ZERO)
+            .ok_or_else(|| WalletError::InvalidAmount {
+                reason: format!("{amount_zats} is not a positive amount in zats"),
+            })?;
+        let session = self.store.session().await?;
+        runtime::write(async move {
+            let request = transaction_request_from_receivers(vec![Receiver {
+                recipient_address: recipient,
+                amount,
+                memo: None,
+            }])
+            .map_err(|invalid| WalletError::InvalidAmount {
+                reason: describe(&invalid),
+            })?;
+            let mut client = session.client.write().await;
+            let proposal = client
+                .propose_send(request, ACCOUNT)
+                .await
+                .map_err(refused_proposal)?;
+            let fee = proposal
+                .steps()
+                .iter()
+                .map(|step| step.balance().fee_required().into_u64())
+                .sum::<u64>();
+            Ok(SendProposal {
+                amount_zats,
+                fee_zats: zats(fee)?,
+                total_zats: zats(amount.into_u64().saturating_add(fee))?,
+            })
+        })
+        .await
+    }
+
+    pub async fn discard_proposal(&self) -> Result<(), WalletError> {
+        let session = self.store.session().await?;
+        runtime::write(async move {
+            session.client.write().await.clear_proposal().await;
+            Ok(())
+        })
+        .await
+    }
+
+    pub async fn send_proposed(&self) -> Result<Vec<String>, WalletError> {
+        let session = self.store.session().await?;
+        let indexer = self.store.indexer.clone();
+        runtime::write(async move {
+            let mut client = session.client.write().await;
+            sync::connect(&mut client, &indexer).await?;
+            let txids = client
+                .send_stored_proposal(true)
+                .await
+                .map_err(|failure| WalletError::send(&failure))?;
+            Ok(txids.iter().map(ToString::to_string).collect())
+        })
+        .await
+    }
+}
+
+fn external_transparent_address(wallet: &LightWallet) -> Option<String> {
+    wallet
+        .transparent_addresses()
+        .iter()
+        .find(|(id, _)| id.scope() == TransparentScope::External)
+        .map(|(_, address)| address.clone())
+}
+
+fn refused_proposal(failure: ProposeSendError) -> WalletError {
+    match &failure {
+        ProposeSendError::Proposal(ProposalError::InsufficientFunds {
+            available,
+            required,
+        }) => WalletError::InsufficientFunds {
+            reason: format!(
+                "{} zats are spendable, {} zats are needed with the fee",
+                available.into_u64(),
+                required.into_u64()
+            ),
+        },
+        ProposeSendError::Proposal(ProposalError::ScanRequired) => WalletError::Sync {
+            reason: "the wallet has not synced yet".to_owned(),
+        },
+        _ => WalletError::send(&failure),
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -378,11 +509,6 @@ fn refused(failure: LightClientError) -> WalletError {
                 reason: describe(invalid),
             }
         }
-        LightClientError::WalletError(below @ LibraryError::BirthdayBelowSapling(..)) => {
-            WalletError::InvalidBirthday {
-                reason: describe(below),
-            }
-        }
         _ => WalletError::internal(&failure),
     }
 }
@@ -396,6 +522,8 @@ mod tests {
     const NEW_SEED_HEIGHT: u32 = 3_000_000;
     const BELOW_SAPLING: i64 = 1;
     const MAINNET_HEIGHT: i64 = 3_000_000;
+    const DEPOSIT_ADDRESS: &str = "t1YbmA92ebTS2M223tZsSFZdn7nogkEwJNx";
+    const DEPOSIT_ZATS: i64 = 1_000_000;
     const TWENTY_FOUR_WORD_SEED: &str = "hospital museum valve antique skate museum unfold vocal weird milk scale social vessel identify crowd hospital control album rib bulb path oven civil tank";
     const BAD_CHECKSUM_SEED: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon";
 
@@ -500,14 +628,6 @@ mod tests {
             ),
             "ERR_INVALID_SEED"
         );
-        assert_eq!(
-            code(
-                wallet
-                    .restore(TWENTY_FOUR_WORD_SEED.to_owned(), BELOW_SAPLING)
-                    .await
-            ),
-            "ERR_INVALID_BIRTHDAY"
-        );
         assert_eq!(wallet.exists().await.ok(), Some(false));
     }
 
@@ -521,6 +641,14 @@ mod tests {
             "ERR_NETWORK"
         );
         assert_eq!(wallet.exists().await.ok(), Some(false));
+        assert_eq!(
+            code(
+                wallet
+                    .restore(TWENTY_FOUR_WORD_SEED.to_owned(), BELOW_SAPLING)
+                    .await
+            ),
+            "ERR_NETWORK"
+        );
         assert_eq!(code(wallet.create().await), "ERR_NETWORK");
     }
 
@@ -541,6 +669,69 @@ mod tests {
         );
         assert_eq!(code(wallet.pause_sync().await), "ERR_NOT_LOADED");
         assert_eq!(code(wallet.resume_sync().await), "ERR_NOT_LOADED");
+        assert_eq!(code(wallet.transparent_address().await), "ERR_NOT_LOADED");
+        assert_eq!(
+            code(
+                wallet
+                    .propose_send(DEPOSIT_ADDRESS.to_owned(), DEPOSIT_ZATS)
+                    .await
+            ),
+            "ERR_NOT_LOADED"
+        );
+        assert_eq!(code(wallet.discard_proposal().await), "ERR_NOT_LOADED");
+        assert_eq!(code(wallet.send_proposed().await), "ERR_NOT_LOADED");
+    }
+
+    #[tokio::test]
+    async fn propose_send_rejects_bad_input_before_the_wallet() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let wallet = wallet_in(&dir);
+        assert_eq!(
+            code(wallet.propose_send("not an address".to_owned(), DEPOSIT_ZATS).await),
+            "ERR_INVALID_ADDRESS"
+        );
+        assert_eq!(
+            code(wallet.propose_send(DEPOSIT_ADDRESS.to_owned(), 0).await),
+            "ERR_INVALID_AMOUNT"
+        );
+        assert_eq!(
+            code(wallet.propose_send(DEPOSIT_ADDRESS.to_owned(), -1).await),
+            "ERR_INVALID_AMOUNT"
+        );
+    }
+
+    #[tokio::test]
+    async fn an_unsynced_wallet_cannot_fund_a_send() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let wallet = wallet_in(&dir);
+        seed(&wallet).await;
+        let refused = code(
+            wallet
+                .propose_send(DEPOSIT_ADDRESS.to_owned(), DEPOSIT_ZATS)
+                .await,
+        );
+        assert!(
+            refused == "ERR_INSUFFICIENT_FUNDS" || refused == "ERR_SYNC",
+            "{refused}"
+        );
+        wallet
+            .discard_proposal()
+            .await
+            .expect("there is nothing to discard");
+        assert_eq!(code(wallet.send_proposed().await), "ERR_NETWORK");
+    }
+
+    #[tokio::test]
+    async fn a_seeded_wallet_has_a_transparent_refund_address() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let wallet = wallet_in(&dir);
+        seed(&wallet).await;
+        let address = wallet
+            .transparent_address()
+            .await
+            .expect("a new wallet derives a transparent address");
+        assert!(address.starts_with("t1"), "{address}");
+        assert_eq!(wallet.transparent_address().await.ok(), Some(address));
     }
 
     #[tokio::test]

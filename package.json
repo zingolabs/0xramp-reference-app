@@ -3,8 +3,10 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
+    "@0xramp/sdk": "file:vendor/0xramp-sdk",
     "@expo/ui": "~57.0.19",
     "expo": "~57.0.24",
+    "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.19",
     "expo-dev-client": "~57.0.19",
     "expo-device": "~57.0.2",
@@ -13,6 +15,7 @@
     "expo-image": "~57.0.5",
     "expo-linking": "~57.0.10",
     "expo-router": "~57.0.22",
+    "expo-secure-store": "~57.0.4",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
@@ -41,7 +44,8 @@
     "gradients": "node scripts/build-panel-gradient.mts",
     "rust:build": "node scripts/build-rust.mts all",
     "rust:ios": "node scripts/build-rust.mts ios",
-    "rust:android": "node scripts/build-rust.mts android"
+    "rust:android": "node scripts/build-rust.mts android",
+    "sdk:build": "npm --prefix vendor/0xramp-sdk ci --ignore-scripts && npm --prefix vendor/0xramp-sdk run build"
   },
   "private": true
 }
