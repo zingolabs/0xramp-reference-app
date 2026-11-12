@@ -30,6 +30,7 @@ export type WalletBackend = {
   resumeSync(): Promise<void>;
   onSyncState(listener: (state: SyncState) => void): SyncStateSubscription;
   transparentAddress(): Promise<string>;
+  unifiedAddress(): Promise<string>;
   proposeSend(address: string, amountZats: number): Promise<SendProposal>;
   discardProposal(): Promise<void>;
   sendProposed(): Promise<string[]>;

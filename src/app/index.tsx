@@ -71,6 +71,7 @@ export default function Home() {
           topInset={headerHeight}
           onShowSyncError={() => router.push("/sync-error")}
           onSell={() => router.push("/ramp")}
+          onReceive={() => router.push("/receive")}
         />
 
         <FlatList
@@ -108,6 +109,7 @@ function Summary({
   topInset,
   onShowSyncError,
   onSell,
+  onReceive,
 }: {
   scheme: ColorSchemeName;
   colors: Colors;
@@ -116,6 +118,7 @@ function Summary({
   topInset: number;
   onShowSyncError: () => void;
   onSell: () => void;
+  onReceive: () => void;
 }) {
   const formatted = formatZec(balance.spendableZats);
   const settled = syncState.firstSyncComplete;
@@ -192,6 +195,7 @@ function Summary({
           label="Receive"
           icon={{ ios: "qrcode.viewfinder", android: "qr_code_scanner", web: "qr_code_scanner" }}
           colors={colors}
+          onPress={onReceive}
         />
         <GlassIconButton
           label="Send"

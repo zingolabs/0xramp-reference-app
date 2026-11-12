@@ -20,6 +20,7 @@ type MethodName =
   | "pauseSync"
   | "resumeSync"
   | "transparentAddress"
+  | "unifiedAddress"
   | "proposeSend"
   | "discardProposal"
   | "sendProposed";
@@ -84,6 +85,10 @@ export function resumeSync(): Promise<void> {
 
 export function transparentAddress(): Promise<string> {
   return call("transparentAddress", (module) => module.transparentAddress());
+}
+
+export function unifiedAddress(): Promise<string> {
+  return call("unifiedAddress", (module) => module.unifiedAddress());
 }
 
 export function proposeSend(address: string, amountZats: number): Promise<SendProposal> {

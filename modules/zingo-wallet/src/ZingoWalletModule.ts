@@ -14,6 +14,7 @@ declare class ZingoWalletModule extends NativeModule<ZingoWalletModuleEvents> {
   pauseSync(): Promise<void>;
   resumeSync(): Promise<void>;
   transparentAddress(): Promise<string>;
+  unifiedAddress(): Promise<string>;
   proposeSend(address: string, amountZats: number): Promise<SendProposal>;
   discardProposal(): Promise<void>;
   sendProposed(): Promise<string[]>;

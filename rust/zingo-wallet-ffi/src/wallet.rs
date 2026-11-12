@@ -16,6 +16,7 @@ use zingolib::netutils::{GrpcIndexer, Indexer as _};
 use zingolib::sync::transparent::TransparentScope;
 use zingolib::sync::{IronwoodNote, OrchardNote, SaplingNote};
 use zingolib::wallet::error::{BalanceError, KeyError, ProposeSendError, WalletError as LibraryError};
+use zingolib::wallet::keys::unified::ReceiverSelection;
 use zingolib::wallet::{LightWallet, WalletSettings};
 
 use crate::error::describe;
@@ -282,6 +283,28 @@ impl Wallet {
         .await
     }
 
+    pub async fn unified_address(&self) -> Result<String, WalletError> {
+        let session = self.store.session().await?;
+        runtime::write(async move {
+            if let Some(address) = first_unified_address(&*session.wallet.read().await) {
+                return Ok(address);
+            }
+            session
+                .client
+                .write()
+                .await
+                .generate_unified_address(ReceiverSelection::all_shielded(), ACCOUNT)
+                .await
+                .map_err(|failure| WalletError::internal(&failure))?;
+            first_unified_address(&*session.wallet.read().await).ok_or_else(|| {
+                WalletError::Internal {
+                    reason: "no unified address was derived".to_owned(),
+                }
+            })
+        })
+        .await
+    }
+
     pub async fn propose_send(
         &self,
         address: String,
@@ -351,6 +374,15 @@ impl Wallet {
         })
         .await
     }
+}
+
+fn first_unified_address(wallet: &LightWallet) -> Option<String> {
+    let chain_type = wallet.chain_type();
+    wallet
+        .unified_addresses()
+        .values()
+        .next()
+        .map(|address| address.encode(&chain_type))
 }
 
 fn external_transparent_address(wallet: &LightWallet) -> Option<String> {
@@ -670,6 +702,7 @@ mod tests {
         assert_eq!(code(wallet.pause_sync().await), "ERR_NOT_LOADED");
         assert_eq!(code(wallet.resume_sync().await), "ERR_NOT_LOADED");
         assert_eq!(code(wallet.transparent_address().await), "ERR_NOT_LOADED");
+        assert_eq!(code(wallet.unified_address().await), "ERR_NOT_LOADED");
         assert_eq!(
             code(
                 wallet
@@ -732,6 +765,19 @@ mod tests {
             .expect("a new wallet derives a transparent address");
         assert!(address.starts_with("t1"), "{address}");
         assert_eq!(wallet.transparent_address().await.ok(), Some(address));
+    }
+
+    #[tokio::test]
+    async fn a_seeded_wallet_has_a_unified_receive_address() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let wallet = wallet_in(&dir);
+        seed(&wallet).await;
+        let address = wallet
+            .unified_address()
+            .await
+            .expect("a new wallet has a unified address");
+        assert!(address.starts_with("u1"), "{address}");
+        assert_eq!(wallet.unified_address().await.ok(), Some(address));
     }
 
     #[tokio::test]

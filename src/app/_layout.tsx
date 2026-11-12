@@ -23,7 +23,7 @@ const SHEET_OPTIONS = SHEET_IS_NATIVE
     } as const)
   : ({ presentation: "transparentModal", animation: "fade" } as const);
 const HAS_SCROLL_EDGE_EFFECTS = process.env.EXPO_OS === "ios" && isGlassEffectAPIAvailable();
-const SHEET_ROUTES = ["switch-wallet", "sync-error", "ramp", "ramp-send"] as const;
+const SHEET_ROUTES = ["switch-wallet", "sync-error", "ramp", "ramp-send", "receive"] as const;
 
 export default function RootLayout() {
   return (

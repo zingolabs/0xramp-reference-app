@@ -14,6 +14,7 @@ export {
   sendProposed,
   startSync,
   transparentAddress,
+  unifiedAddress,
 } from "./src/ZingoWallet";
 export {
   isWalletErrorCode,

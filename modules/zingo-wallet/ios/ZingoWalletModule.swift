@@ -31,6 +31,7 @@ public final class ZingoWalletModule: Module {
     AsyncFunction("pauseSync") { try await withWallet { try await $0.pauseSync() } }
     AsyncFunction("resumeSync") { try await withWallet { try await $0.resumeSync() } }
     AsyncFunction("transparentAddress") { try await withWallet { try await $0.transparentAddress() } }
+    AsyncFunction("unifiedAddress") { try await withWallet { try await $0.unifiedAddress() } }
     AsyncFunction("proposeSend") { (address: String, amountZats: Int64) in
       try await withWallet { try await $0.proposeSend(address: address, amountZats: amountZats) }.dictionary
     }

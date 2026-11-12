@@ -39,6 +39,7 @@ class ZingoWalletModule : Module() {
     AsyncFunction("pauseSync") Coroutine { -> coded { wallet.pauseSync() } }
     AsyncFunction("resumeSync") Coroutine { -> coded { wallet.resumeSync() } }
     AsyncFunction("transparentAddress") Coroutine { -> coded { wallet.transparentAddress() } }
+    AsyncFunction("unifiedAddress") Coroutine { -> coded { wallet.unifiedAddress() } }
     AsyncFunction("proposeSend") Coroutine { address: String, amountZats: Long -> coded { wallet.proposeSend(address, amountZats).toMap() } }
     AsyncFunction("discardProposal") Coroutine { -> coded { wallet.discardProposal() } }
     AsyncFunction("sendProposed") Coroutine { -> coded { wallet.sendProposed() } }

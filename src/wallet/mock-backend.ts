@@ -10,6 +10,8 @@ const SEED_WORD_COUNT = 24;
 const EMPTY_BALANCE = { spendableZats: 0, unshieldedZats: 0 };
 const MOCK_FEE_ZATS = 10_000;
 const MOCK_TRANSPARENT_ADDRESS = "t1YbmA92ebTS2M223tZsSFZdn7nogkEwJNx";
+const MOCK_UNIFIED_ADDRESS =
+  "u1mockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmockmock";
 const TXID_HEX_LENGTH = 64;
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -134,6 +136,10 @@ export function createMockBackend(scenario: MockScenario): WalletBackend {
     async transparentAddress() {
       requireLoaded();
       return MOCK_TRANSPARENT_ADDRESS;
+    },
+    async unifiedAddress() {
+      requireLoaded();
+      return MOCK_UNIFIED_ADDRESS;
     },
     async proposeSend(address, amountZats) {
       requireLoaded();
