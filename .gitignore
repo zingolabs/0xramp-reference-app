@@ -62,3 +62,7 @@ modules/zingo-wallet/ios/ZingoWalletFFI.xcframework
 modules/zingo-wallet/ios/Generated
 modules/zingo-wallet/android/src/main/jniLibs
 modules/zingo-wallet/android/src/main/java/uniffi
+
+# Local notes
+docs/0xramp-findings.md
+docs/adr/0004-0xramp-sells-run-in-the-browser-with-a-native-send.md
